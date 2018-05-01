@@ -1,2 +1,13 @@
 # leakScraper
-An efficient set of tools to process and visualize huge text files containing credentials.
+[![Python 3.5|3.6](https://img.shields.io/badge/python-3.x-green.svg)](https://www.python.org/) [![License](https://img.shields.io/badge/license-GPLv3-red.svg)](https://raw.githubusercontent.com/almandin/fuxploider/master/LICENSE.md)
+
+LeakScraper is an efficient set of tools to process and visualize huge text files containing credentials. These tools are designed to help pentesters/redteamers doing OSINT, credentials gathering and credentials stuffing attacks.
+
+LeakScraper is split into three parts :
+- **leakStandardizer** : A tool to standardize leaks you got from some legit place on the internet. It takes in input a file containing credentials following some weird format, containing non ascii characters or empty lines, lines containing invalid emails or no password. It will produce, with your help (using regular expression), an easily greppable file using the following format : `email:hash:plain` ("plain" for "plain text password").
+- **leakImporter** : A tool to import a standardized leak file into a MySQL database. It will take care of extracting data from the file, putting it into a mysql comprehensive format, creating/managing indexes ...
+- **leakScraper** : A tool and an interface to excavate data from the database and display it nicely.
+
+These tools have been made with the following postulates in mind :
+- The covered usecase is the following : searching credentials belonging to a specific organization/company/structure. This is done by searching credentials associated to an email belonging to the organization in question. Eg: Searching credentials belonging to microsoft is done by searching credentials associated to accounts registered with an email ending with "@microsoft.com". It is the only usecase covered and it means a lot in terms of technical choices (database indexes and data representation in general).
+- Leaks can weight several gigabytes. It means that each process (standardizing, imports and researches) are using **in-place algorithms in terms of memory**. You can know beforehand how much memory theses tools will take to process a specific file.
