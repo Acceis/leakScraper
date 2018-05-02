@@ -16,6 +16,9 @@ LeakScraper is an efficient set of tools to process and visualize huge text file
 	```
 	It will install a few pip packages and debian packages (python-magic, python3-mysqldb and bottle).
 
+### Requirements
+Linux (debian), python 3.x and a mysql server.
+
 ### Usage
 *See the wiki for that*
 ### Screenshot
