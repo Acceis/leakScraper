@@ -16,6 +16,9 @@ LeakScraper is an efficient set of tools to process and visualize huge text file
 	```
 	It will install a few pip packages and debian packages (python-magic, python3-mysqldb and bottle).
 
+### Usage
+*See the wiki for that*
+
 ### The different tools
 LeakScraper is split into three parts :
 - **leakStandardizer** : A tool to standardize leaks you got from some legit place on the internet. It takes in input a file containing credentials following some weird format, containing non ascii characters or empty lines, lines containing invalid emails or no password. It will produce, with your help (using regular expression), an easily greppable file using the following format : `email:hash:plain` ("plain" for "plain text password").
