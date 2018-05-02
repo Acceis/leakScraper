@@ -25,7 +25,7 @@ LeakScraper is split into three parts :
 - **leakImporter** : A tool to import a standardized leak file into a MySQL database. It will take care of extracting data from the file, putting it into a mysql comprehensive format, creating/managing indexes ...
 - **leakScraper** : A tool and an interface to excavate data from the database and display it nicely.
 
-These tools have been made with the following postulates in mind :
+### Postulates
 - The covered usecase is the following : searching credentials belonging to a specific organization/company/structure. This is done by searching credentials associated to an email belonging to the organization in question. Eg: Searching credentials belonging to microsoft is done by searching credentials associated to accounts registered with an email ending with "@microsoft.com". It is the only usecase covered and it means a lot in terms of technical choices (database indexes and data representation in general).
 
 - Leaks can weight several gigabytes. It means that each process (standardizing, imports and researches) are using **in-place algorithms in terms of memory**. You can know beforehand how much memory theses tools will use to process a specific file, and it will never exhaust your computer's resources (unless you have a very old one).
