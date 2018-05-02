@@ -18,6 +18,8 @@ LeakScraper is an efficient set of tools to process and visualize huge text file
 
 ### Usage
 *See the wiki for that*
+### Screenshot
+![](https://github.com/Acceis/leakScraper/blob/master/screenshots/leakScraper.png)
 
 ### The different tools
 LeakScraper is split into three parts :
