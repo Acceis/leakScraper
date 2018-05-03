@@ -97,7 +97,7 @@ def getLeaks():
     leaksb = []
     for leak in leaksa:
         tmpleak = leak
-        tmpleak[0] = '{:,}'.format(int(tmpleak[0])).replace(',', ' ')
+        tmpleak[1] = '{:,}'.format(int(tmpleak[1])).replace(',', ' ')
         leaksb.append(leak)
     c.close()
     return dict(count=count, nbLeaks=nbLeaks, leaks=leaksb)
