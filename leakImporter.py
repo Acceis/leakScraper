@@ -93,8 +93,8 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
                         hashed = sha_1.hexdigest()
                     fd2.write(str(leak_id) + delimiter + prefix + delimiter + domain + delimiter + hashed + delimiter + plain + "\n")
                     nb += 1
-                except Exception as e:
-                    print(line, ":", e)
+                except Exception as ex:
+                    print(line, ":", ex)
                     not_imported[1].acquire()
                     not_imported[0].write(line)
                     not_imported[1].release()
