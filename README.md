@@ -8,7 +8,7 @@ LeakScraper is an efficient set of tools to process and visualize huge text file
 - First things first : **have a working mysql server**. It can be mysql, mariadb or anything working around mysql.
 - Then :
 	```shell
-	git clone https://github.com/Acceis/leakScraper
+	git clone -b mysql https://github.com/Acceis/leakScraper
 	vi leakScraper/settings.py
 	```
 	Edit the settings to reflect your mysql login/password.
