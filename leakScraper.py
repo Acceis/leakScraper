@@ -1,12 +1,10 @@
 from pymongo import MongoClient
 from bottle import *
-import settings
 import datetime
 import magic
 import math
 import time
 import os
-import re
 
 mongo_database = "leakScraper"
 
