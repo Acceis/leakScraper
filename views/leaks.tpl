@@ -16,10 +16,10 @@
 				</tr>
 				% for l in leaks :
 				<tr>
-					<td>{{l[3]}}</td>
-					<td>{{l[1]}}</td>
-					<td>{{l[2]}}</td>
-					<td><b><a style="color:red;text-decoration:none;" href="/removeLeak?id={{l[0]}}">X</a></b></td>
+					<td>{{l["name"]}}</td>
+					<td>{{l["imported"]}}</td>
+					<td>{{l["filename"]}}</td>
+					<td><b><a style="color:red;text-decoration:none;" href="/removeLeak?id={{l["id"]}}">X</a></b></td>
 				</tr>
 				% end
 			</table>

@@ -4,7 +4,9 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 pip3 install python-magic bottle
-apt install python3-mysqldb
-echo "Mysql Login : "
-read mylogin
-mysql -u "$mylogin" -p < setup.sql
+apt install python3-pymongo
+
+db="leakScraper"
+mongo --eval "db.credentials.createIndex({\"domain\":\"hashed\"})" "$db" > /dev/null 2>&1
+mongo --eval "db.credentials.createIndex({\"leak\":\"hashed\"})" "$db" > /dev/null 2>&1
+mongo --eval "db.createCollection(\"leaks\")" "$db" > /dev/null 2>&1

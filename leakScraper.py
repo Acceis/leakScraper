@@ -1,22 +1,21 @@
+from pymongo import MongoClient
 from bottle import *
 import settings
 import datetime
-import MySQLdb
-import hashlib
-import urllib
 import magic
 import math
 import time
 import os
 import re
 
+mongo_database = "leakScraper"
 
 @route('/', method='GET')
-@view('views/index_mysql')
+@view('views/index')
 def index():
-    db = MySQLdb.connect(host=settings.mysql_host, passwd=settings.mysql_password,
-                         user=settings.mysql_login, db=settings.mysql_database)
-    c = db.cursor()
+    client = MongoClient()
+    db = client[mongo_database]
+    credentials = db["credentials"]
     display_more = False
     display_less = False
     default_step = 500
@@ -42,17 +41,13 @@ def index():
         start = max(0, (page - 1) * step)
         end = start + step
         ta = time.time()
-        c.execute("SELECT prefix,domain,hash,plain FROM credentials WHERE domain = %s LIMIT %s,%s", (query, start, step))
         tb = time.time()
-        creds = [list(x) for x in c.fetchall()]
+        creds = [document for document in credentials.find({"domain": query}).skip(start).limit(step)]
         tc = time.time()
-        nbRes = c.execute("SELECT COUNT(1) FROM (SELECT 1 FROM credentials WHERE domain = %s LIMIT %s,%s) AS a",
-                          (query, ((int(numPage) - 1) * max_pages * step), max_pages * step))
+        nbRes = credentials.find({"domain": query}).skip(((int(numPage) - 1) * max_pages * step)).limit(max_pages * step).count(with_limit_and_skip=True)
         td = time.time()
-        nbRes = c.fetchone()
-        nbRes = nbRes[0]
         nbPages = int(math.ceil(nbRes / step))
-        page = max(1,min(((numPage - 1) * max_pages) + nbPages, page))
+        page = max(1, min(((numPage - 1) * max_pages) + nbPages, page))
         if request.query.page and int(request.query.page) > page:
             redirect("/?search=" + query + "&page=" + str(page) + "&numPage=" + str(numPage))
         if nbRes == max_pages * step:
@@ -69,46 +64,35 @@ def index():
         step = default_step
         numPage = 0
         first_page = 1
-    count = c.execute("SELECT SUM(imported) FROM leaks")
-    count = c.fetchone()
-    count = count[0] if count[0] else 0
+    count = credentials.count()
     count = '{:,}'.format(count).replace(',', ' ')
-    c.close()
     return dict(creds=creds, count=count, query=query, nbRes=nbRes, page=page, nbPages=nbPages, step=step,
                 first_page=first_page, display_more=display_more, display_less=display_less,
                 numPage=numPage, max_pages=max_pages)
 
 
 @route('/leaks', method="GET")
-@view('views/leaks_mysql')
+@view('views/leaks')
 def getLeaks():
-    db = MySQLdb.connect(host=settings.mysql_host, passwd=settings.mysql_password,
-                         user=settings.mysql_login, db=settings.mysql_database)
-    c = db.cursor()
-    count = c.execute("SELECT SUM(imported) FROM leaks")
-    count = c.fetchone()
-    count = count[0] if count[0] else 0
+    client = MongoClient()
+    db = client[mongo_database]
+    credentials = db["credentials"]
+    leaks = db["leaks"]
+    count = credentials.count()
     count = '{:,}'.format(count).replace(',', ' ')
-    c.execute("SELECT id,imported,filename,name FROM leaks")
-    leaksa = [list(x) for x in c.fetchall()]
-    nbLeaks = c.execute("SELECT COUNT(1) FROM leaks")
-    nbLeaks = c.fetchone()
-    nbLeaks = nbLeaks[0]
-    leaksb = []
-    for leak in leaksa:
-        tmpleak = leak
-        tmpleak[1] = '{:,}'.format(int(tmpleak[1])).replace(',', ' ')
-        leaksb.append(leak)
-    c.close()
-    return dict(count=count, nbLeaks=nbLeaks, leaks=leaksb)
+    nbLeaks = leaks.count()
+    leaksa = []
+    if nbLeaks > 0:
+        leaksa = [{"id": leak["id"], "imported": '{:,}'.format(int(leak["imported"])).replace(',', ' '), "name": leak["name"], "filename": leak["filename"]} for leak in leaks.find()]
+    return dict(count=count, nbLeaks=nbLeaks, leaks=leaksa)
 
 
 @route('/export', method='GET')
 def export():
     if request.query.search:
-        db = MySQLdb.connect(host=settings.mysql_host, passwd=settings.mysql_password,
-                         user=settings.mysql_login, db=settings.mysql_database)
-        c = db.cursor()
+        client = MongoClient()
+        db = client[mongo_database]
+        credentials = db["credentials"]
         what = request.query.what
         if what not in ["all", "left", "cracked"]:
             what = "all"
@@ -117,14 +101,13 @@ def export():
         response.set_header("content-Disposition", "inline;filename=creds-" + query + ".txt")
 
         if what == "all":
-            c.execute("SELECT prefix,domain,hash,plain FROM credentials WHERE domain=%s", (query,))
+            r = credentials.find({"domain": query})
         elif what == "left":
-            c.execute("SELECT prefix,domain,hash FROM credentials WHERE domain=%s AND plain=''", (query,))
+            r = credentials.find({"domain": query, "plain": {"$eq": ""}})
         elif what == "cracked":
-            c.execute("SELECT prefix,domain,hash,plain FROM credentials WHERE domain=%s AND plain != ''", (query,))
+            r = credentials.find({"domain": query, "plain": {"$ne": ""}})
 
-        res = "\n".join([x[0] + "@" + x[1] + ":" + ":".join(x[2:]) for x in c.fetchall()])
-        c.close()
+        res = "\n".join([x["prefix"] + "@" + x["domain"] + ":" + x["hash"] + ":" + x["plain"] for x in r])
 
     else:
         redirect("/")
@@ -135,14 +118,13 @@ def export():
 @route('/removeLeak', method="GET")
 def removeLeak():
     if request.query.id:
-        db = MySQLdb.connect(host=settings.mysql_host, passwd=settings.mysql_password,
-                         user=settings.mysql_login, db=settings.mysql_database)
-        c = db.cursor()
+        client = MongoClient()
+        db = client[mongo_database]
+        credentials = db["credentials"]
+        leaks = db["leaks"]
         print("\tRemoving credentials for leak " + str(request.query.id) + " ...")
-        c.execute("DELETE FROM leaks WHERE id=%s", (request.query.id,))
-        c.execute("ANALYZE TABLE credentials")
-        db.commit()
-        c.close()
+        credentials.delete_many({"leak": int(request.query.id)})
+        leaks.delete_one({"id": int(request.query.id)})
         print("\tdone.")
     redirect("/leaks")
 

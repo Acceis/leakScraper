@@ -1,14 +1,14 @@
 from itertools import (takewhile, repeat)
+from pymongo import MongoClient
+import subprocess
 import threading
-import settings
 import datetime
-import hashlib
-import MySQLdb
 import magic
 import time
 import uuid
 import sys
 import os
+import re
 
 '''
    __            _     _____                            _
@@ -27,26 +27,20 @@ usage : leakImporter.py <leakName> <leak_file>
 
         This tool does NOT handle duplicates as it would be much (much) slower.
 
-A correct database to use along with this tool must have the following tables :
-CREATE DATABASE leakScraper;
-USE leakScraper;
-CREATE TABLE leaks (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    name varchar(255) NOT NULL,
-    imported BIGINT,
-    filename varchar(255) NOT NULL);
+A correct database to use along with this tool must have the following collections:
+credentials:
+    prefix  (test)
+    domain  (gmail.com)
+    plain   (p4ssw0rd)
+    hash    (e731a7b612ab389fcb7f973c452f33df3eb69c99)
+    leak    (3)
+lekas
+    name    (tumblr)
+    imported(60 550 000)
+    filename(tumblr_leak.txt)
+    id      (3)
 
-CREATE TABLE credentials (
-    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    prefix VARCHAR(255) NOT NULL,
-    domain VARCHAR(255) NOT NULL,
-    hash VARCHAR(512) NOT NULL,
-    plain VARCHAR(512) NOT NULL,
-    leak INT NOT NULL,
-    FOREIGN KEY (leak) REFERENCES leaks(id) ON DELETE CASCADE) ENGINE=INNODB;
-
-    CREATE INDEX leak_index ON credentials (leak) USING HASH;
-    CREATE INDEX domain_index ON credentials (domain) USING HASH;
+Indexes should be created : db.credentials.createIndex({"domain":"hashed"}), db.credentials.createIndex({"leak":"hashed"})
 '''
 # terminal colors
 ENDC = '\033[0m'
@@ -58,10 +52,7 @@ ORANGE = '\033[38;5;208;1m'
 CLEAR = '\033[2K'
 ############################
 # database parameters
-mysql_login = settings.mysql_login
-mysql_password = settings.mysql_password
-mysql_database = settings.mysql_database
-mysql_host = settings.mysql_host
+mongo_database = "leakScraper"
 
 
 def count_lines(filename, buffsize=1024 * 1024):
@@ -71,7 +62,7 @@ def count_lines(filename, buffsize=1024 * 1024):
 
 
 def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_imported, nb_err, e):
-    delimiter = ';'
+    delimiter = ','
     with open(filepath, "r") as fd:
         line = [fd.readline() for _ in range(nbThreads)][n - 1]
         i = n - 1
@@ -82,16 +73,13 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
         while i < total_lines:
             if line:
                 try:
-                    s = line.strip().split(":")
+                    s = line.strip().replace('"', '""').split(":")
                     em = s[0].split("@")
-                    prefix = em[0].replace(";", "\\;")
-                    domain = em[1].replace(";", "\\;")
-                    plain = "".join(s[2:]).replace(";", "\\;")
-                    hashed = s[1].replace(";", "\\;")
-                    if hashed == "":
-                        sha_1 = hashlib.sha1(plain.encode("utf-8"))
-                        hashed = sha_1.hexdigest()
-                    fd2.write(str(leak_id) + delimiter + prefix + delimiter + domain + delimiter + hashed + delimiter + plain + "\n")
+                    prefix = em[0]
+                    domain = em[1]
+                    plain = "".join(s[2:])
+                    hashed = s[1]
+                    fd2.write('"' + str(leak_id) + '"' + delimiter + '"' + prefix + '"' + delimiter + '"' + domain + '"' + delimiter + '"' + hashed + '"' + delimiter + '"' + plain + '"'+"\n")
                     nb += 1
                 except Exception as ex:
                     print(line, ":", ex)
@@ -104,41 +92,29 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
             nb_parsed[n] = nb
             nb_err[n] = errs
     fd2.close()
-    db = MySQLdb.connect(host=mysql_host, passwd=mysql_password, user=mysql_login, db=mysql_database)
-    c = db.cursor()
-    c.execute("LOAD DATA LOCAL INFILE %s INTO TABLE credentials FIELDS TERMINATED BY '" + delimiter + "' LINES TERMINATED BY '\n' (leak,prefix,domain,hash,plain);", (filename,))
-    db.commit()
+    proc = subprocess.Popen(["mongoimport","-d",mongo_database,"-c","credentials","--type","csv","--file",filename,"--fields","leak,prefix,domain,hash,plain", "--numInsertionWorkers","8"], stdout=subprocess.PIPE, stderr = subprocess.PIPE, bufsize=1, universal_newlines=True)
+    proc.wait()
     e.set()
-    c.close()
-    c = db.cursor()
-    c.execute("SELECT COUNT(1) FROM credentials WHERE leak = %s", (leak_id,))
-    n = c.fetchone()
-    n = n[0]
-    c.execute("UPDATE leaks SET imported = %s WHERE id=%s", (sum(nb_parsed.values()), leak_id))
-    db.commit()
-    c.close()
-    db.close()
     os.remove(filename)
-
+    client = MongoClient()
+    db = client[mongo_database]
+    credentials = db["credentials"]
+    leaks = db["leaks"]
+    imported = credentials.find({"leak":leak_id}).count()
+    leaks.update_one({"id":leak_id},{"$set":{"imported":imported}})
 
 def stats(nb_parsed, total_lines, leak_id, nb_err, e):
     '''
     Thread dedicated to printing statistics when processing things.
     '''
-    t0 = time.time()
     ok = sum(nb_parsed.values())
     errs = sum(nb_err.values())
     parsed = errs + ok
-
-    db = MySQLdb.connect(host=mysql_host, passwd=mysql_password, user=mysql_login, db=mysql_database)
-    c = db.cursor()
-    c.execute("""SELECT imported FROM leaks WHERE id = %s""", (leak_id,))
-    start = c.fetchone()[0]
-    c.execute("""ANALYZE TABLE credentials""")
-    initial_number_of_rows = c.execute("""SELECT TABLE_ROWS FROM information_schema.tables WHERE table_name = 'credentials'""")
-    initial_number_of_rows = c.fetchone()[0]
-    c.close()
-    c = db.cursor()
+    client = MongoClient()
+    db = client[mongo_database]
+    credentials = db["credentials"]
+    initial_number_of_rows = credentials.count()
+    t0 = time.time()
     while parsed < total_lines:
         time.sleep(1)
         ok = sum(nb_parsed.values())
@@ -157,14 +133,12 @@ def stats(nb_parsed, total_lines, leak_id, nb_err, e):
         ratio_ok = round(ok / parsed * 100, 2)
         output = CLEAR + "\t" + BLUE + "%s/%s - %s%% - %s/s" + ENDC + ", " + GREEN + "ok : %s - %s%%" + ENDC + ", " + RED + "errors : %s - %s%%" + ENDC + " - %s"
         print(output % ("{:,}".format(parsed), "{:,}".format(total_lines), ratio_total, speed, "{:,}".format(ok), ratio_ok, "{:,}".format(errs), ratio_errs, eta), end="\r")
-        c.close()
     print()
-    c = db.cursor()
     i = 0
     while not e.is_set():
+        #print("test")
         i += 1
-        c.execute("""SELECT TABLE_ROWS FROM information_schema.tables WHERE table_name = 'credentials'""")
-        nb = c.fetchone()[0]
+        nb = credentials.count()
         imported = nb - initial_number_of_rows
         remaining = ok - imported
         speed = int(imported / i)
@@ -173,17 +147,11 @@ def stats(nb_parsed, total_lines, leak_id, nb_err, e):
             eta = datetime.timedelta(seconds=remaining / speed)
         except ZeroDivisionError:
             eta = "--:--:--"
-        print(CLEAR + GREEN + "\tMySQL 'LOA DATA' Import : " + str(ratio_imported) + "%" + ENDC + " - " + str(speed) + "/s (approximation) - " + str(eta), end="\r")
+        print(CLEAR + GREEN + "\t'mongoimport' Import : " + str(ratio_imported) + "%" + ENDC + " - " + str(speed) + "/s - " + str(eta), end="\r", flush=True)
         e.wait(1)
     print()
-    c.close()
-
 
 def main():
-    if mysql_login == "changeme" and mysql_password == "changeme":
-        print("Please, configure me by setting a mysql username and password !")
-        print("Change variables 'mysql_login' and 'mysql_password' on top of this current file.")
-        exit()
     if len(sys.argv) != 3:
         print("Usage : importer.py leakName <creds.txt>")
         print("Example : importer.py tumblr tumblr.txt")
@@ -206,18 +174,20 @@ def main():
         if isreadable:
             print("Counting lines ...")
             total_lines = count_lines(filename)
-            db = MySQLdb.connect(host=mysql_host, passwd=mysql_password, user=mysql_login, db=mysql_database)
-            c = db.cursor()
-            c.execute("""SELECT * FROM leaks WHERE name = %s""", (leakName,))
-            if c.rowcount == 0:
-                added = str(datetime.datetime.now()).split(".")[0]
-                c.execute("""INSERT INTO leaks (name,filename,imported) VALUES (%s,%s,%s)""", (leakName, os.path.basename(filename), 0))
-                db.commit()
-                c.execute("""SELECT id FROM leaks WHERE name = %s""", (leakName,))
-                leak_id = c.fetchone()[0]
+            client = MongoClient()
+            db = client[mongo_database]
+            leaks = db["leaks"]
+            nbLeaks = leaks.find({"name":leakName}).count()
+            if nbLeaks == 0:
+                newid = leaks.find()
+                try:
+                    newid = max([x["id"] for x in newid]) + 1
+                except ValueError:
+                    newid = 1
+                leaks.insert_one({"name":leakName,"filename":os.path.basename(filename), "imported":0, "id":newid})
+                leak_id = newid
             else:
-                leak_id = c.fetchone()[0]
-            c.close()
+                leak_id = leaks.find_one({"name":leakName})["id"]
             nb_parsed = {}
             nb_err = {}
             e = threading.Event()
@@ -237,7 +207,6 @@ def main():
             print()
             print("Import finished in", round(t1 - t0, 4), "secs")
     not_imported[0].close()
-    db.commit()
 
 
 if __name__ == "__main__":
