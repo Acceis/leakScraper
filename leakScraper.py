@@ -2,13 +2,11 @@ from bottle import *
 import settings
 import datetime
 import MySQLdb
-import hashlib
 import urllib
 import magic
 import math
 import time
 import os
-import re
 
 
 @route('/', method='GET')

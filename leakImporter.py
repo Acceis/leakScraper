@@ -2,7 +2,6 @@ from itertools import (takewhile, repeat)
 import threading
 import settings
 import datetime
-import hashlib
 import MySQLdb
 import magic
 import time
@@ -88,9 +87,6 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
                     domain = em[1].replace(";", "\\;")
                     plain = "".join(s[2:]).replace(";", "\\;")
                     hashed = s[1].replace(";", "\\;")
-                    if hashed == "":
-                        sha_1 = hashlib.sha1(plain.encode("utf-8"))
-                        hashed = sha_1.hexdigest()
                     fd2.write(str(leak_id) + delimiter + prefix + delimiter + domain + delimiter + hashed + delimiter + plain + "\n")
                     nb += 1
                 except Exception as ex:
