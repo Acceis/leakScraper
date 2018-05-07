@@ -23,7 +23,7 @@ Linux (debian), python 3.x and a mysql server.
 ### Usage
 *See the wiki for that*
 ### Screenshot
-![](https://github.com/Acceis/leakScraper/blob/master/screenshots/leakScraper.png)
+![](https://raw.githubusercontent.com/Acceis/leakScraper/mysql/screenshots/leakScraper.png)
 
 ### The different tools
 LeakScraper is split into three parts :
