@@ -10,7 +10,7 @@ import os
 
 
 @route('/', method='GET')
-@view('views/index_mysql')
+@view('views/index')
 def index():
     db = MySQLdb.connect(host=settings.mysql_host, passwd=settings.mysql_password,
                          user=settings.mysql_login, db=settings.mysql_database)
@@ -78,7 +78,7 @@ def index():
 
 
 @route('/leaks', method="GET")
-@view('views/leaks_mysql')
+@view('views/leaks')
 def getLeaks():
     db = MySQLdb.connect(host=settings.mysql_host, passwd=settings.mysql_password,
                          user=settings.mysql_login, db=settings.mysql_database)
