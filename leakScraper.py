@@ -39,14 +39,10 @@ def index():
             numPage = 1
         start = max(0, (page - 1) * step)
         end = start + step
-        ta = time.time()
         c.execute("SELECT prefix,domain,hash,plain FROM credentials WHERE domain = %s LIMIT %s,%s", (query, start, step))
-        tb = time.time()
         creds = [list(x) for x in c.fetchall()]
-        tc = time.time()
         nbRes = c.execute("SELECT COUNT(1) FROM (SELECT 1 FROM credentials WHERE domain = %s LIMIT %s,%s) AS a",
                           (query, ((int(numPage) - 1) * max_pages * step), max_pages * step))
-        td = time.time()
         nbRes = c.fetchone()
         nbRes = nbRes[0]
         nbPages = int(math.ceil(nbRes / step))
