@@ -1,9 +1,7 @@
 from pymongo import MongoClient
 from bottle import *
-import datetime
 import magic
 import math
-import time
 import os
 
 mongo_database = "leakScraper"
@@ -38,12 +36,8 @@ def index():
             numPage = 1
         start = max(0, (page - 1) * step)
         end = start + step
-        ta = time.time()
-        tb = time.time()
         creds = [document for document in credentials.find({"domain": query}).skip(start).limit(step)]
-        tc = time.time()
         nbRes = credentials.find({"domain": query}).skip(((int(numPage) - 1) * max_pages * step)).limit(max_pages * step).count(with_limit_and_skip=True)
-        td = time.time()
         nbPages = int(math.ceil(nbRes / step))
         page = max(1, min(((numPage - 1) * max_pages) + nbPages, page))
         if request.query.page and int(request.query.page) > page:

@@ -136,7 +136,6 @@ def stats(nb_parsed, total_lines, leak_id, nb_err, e):
     print()
     i = 0
     while not e.is_set():
-        #print("test")
         i += 1
         nb = credentials.count()
         imported = nb - initial_number_of_rows
