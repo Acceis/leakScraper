@@ -92,7 +92,8 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
             nb_parsed[n] = nb
             nb_err[n] = errs
     fd2.close()
-    proc = subprocess.Popen(["mongoimport","-d",mongo_database,"-c","credentials","--type","csv","--file",filename,"--fields","leak,prefix,domain,hash,plain", "--numInsertionWorkers","8"], stdout=subprocess.PIPE, stderr = subprocess.PIPE, bufsize=1, universal_newlines=True)
+    cmd = ["mongoimport","-d",mongo_database,"-c","credentials","--type","csv","--file",filename,"--fields","leak,prefix,domain,hash,plain", "--numInsertionWorkers","8"]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     proc.wait()
     e.set()
     os.remove(filename)
@@ -136,6 +137,7 @@ def stats(nb_parsed, total_lines, leak_id, nb_err, e):
     print()
     i = 0
     while not e.is_set():
+        e.wait(1)
         i += 1
         nb = credentials.count()
         imported = nb - initial_number_of_rows
@@ -147,7 +149,6 @@ def stats(nb_parsed, total_lines, leak_id, nb_err, e):
         except ZeroDivisionError:
             eta = "--:--:--"
         print(CLEAR + GREEN + "\t'mongoimport' Import : " + str(ratio_imported) + "%" + ENDC + " - " + str(speed) + "/s - " + str(eta), end="\r", flush=True)
-        e.wait(1)
     print()
 
 def main():
