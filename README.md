@@ -5,7 +5,7 @@
 LeakScraper is an efficient set of tools to process and visualize huge text files containing credentials. These tools are designed to help pentesters/redteamers doing OSINT, credentials gathering and credentials stuffing attacks.
 
 ### Installation
-- First things first : **have a working mysql server**. It can be mysql, mariadb or anything working around mysql.
+- First things first : **have a working mongodb server**.
 - Then :
 	```shell
 	git clone -b mongodb https://github.com/Acceis/leakScraper
