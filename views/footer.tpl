@@ -1,5 +1,5 @@
 	      <footer class="footer">
-	        <p>&copy; Virgile Jarry</p>
+	        <p>GPL-3.0 Virgile Jarry - ACCEIS</p>
 	      </footer>
 
 	    </div>

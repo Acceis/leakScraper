@@ -36,8 +36,8 @@ def index():
             numPage = 1
         start = max(0, (page - 1) * step)
         end = start + step
-        creds = [document for document in credentials.find({"domain": query}).skip(start).limit(step)]
-        nbRes = credentials.find({"domain": query}).skip(((int(numPage) - 1) * max_pages * step)).limit(max_pages * step).count(with_limit_and_skip=True)
+        creds = [document for document in credentials.find({"d": query}).skip(start).limit(step)]
+        nbRes = credentials.find({"d": query}).skip(((int(numPage) - 1) * max_pages * step)).limit(max_pages * step).count(with_limit_and_skip=True)
         nbPages = int(math.ceil(nbRes / step))
         page = max(1, min(((numPage - 1) * max_pages) + nbPages, page))
         if request.query.page and int(request.query.page) > page:
@@ -93,13 +93,13 @@ def export():
         response.set_header("content-Disposition", "inline;filename=creds-" + query + ".txt")
 
         if what == "all":
-            r = credentials.find({"domain": query})
+            r = credentials.find({"d": query})
         elif what == "left":
-            r = credentials.find({"domain": query, "plain": {"$eq": ""}})
+            r = credentials.find({"d": query, "P": {"$eq": ""}})
         elif what == "cracked":
-            r = credentials.find({"domain": query, "plain": {"$ne": ""}})
+            r = credentials.find({"d": query, "P": {"$ne": ""}})
 
-        res = "\n".join([x["prefix"] + "@" + x["domain"] + ":" + x["hash"] + ":" + x["plain"] for x in r])
+        res = "\n".join([x["p"] + "@" + x["d"] + ":" + x["h"] + ":" + x["P"] for x in r])
 
     else:
         redirect("/")
@@ -115,7 +115,7 @@ def removeLeak():
         credentials = db["credentials"]
         leaks = db["leaks"]
         print("\tRemoving credentials for leak " + str(request.query.id) + " ...")
-        credentials.delete_many({"leak": int(request.query.id)})
+        credentials.delete_many({"l": int(request.query.id)})
         leaks.delete_one({"id": int(request.query.id)})
         print("\tdone.")
     redirect("/leaks")

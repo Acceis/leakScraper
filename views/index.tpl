@@ -67,9 +67,9 @@
 				</tr>
 				% for c in creds :
 				<tr>
-					<td><span class="email">{{c["prefix"]}}</span>@{{c["domain"]}}</td>
-					<td><span class="hash">{{c["hash"]}}</span></td>
-					<td><span class="plain">{{c["plain"]}}</span></td>
+					<td><span class="email">{{c["p"]}}</span>@{{c["d"]}}</td>
+					<td><span class="hash">{{c["h"]}}</span></td>
+					<td><span class="plain">{{c["P"]}}</span></td>
 				</tr>
 				% end
 			</table>

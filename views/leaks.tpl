@@ -26,6 +26,6 @@
 		% end
 		<div class="row-fluid addLeaks">
 			<h5>How to add leaks</h5>
-			<p>Use the <i><b>leakStandardizer</b></i> and <i><b>leakImporter</b></i> scripts to add leaks. <i><b>leakStandardizer</b></i> helps getting a uniformed leak file following a defined format (email:hash:plain) out of a file full of junk (your initial leak obtained from a spooky place on the Internet). The <i><b>leakImporter</b></i> scripts will parse this file, convert it into a CSV and import it in your mysql database faster than speed !</p>
+			<p>Use the <i><b>leakStandardizer</b></i> and <i><b>leakImporter</b></i> scripts to add leaks. <i><b>leakStandardizer</b></i> helps getting a uniformed leak file following a defined format (email:hash:plain) out of a file full of junk (your initial leak obtained from a spooky place on the Internet). The <i><b>leakImporter</b></i> scripts will parse this file, convert it into a CSV and import it in your mongo/mysql database faster than speed !</p>
 		</div>
 % include("footer")

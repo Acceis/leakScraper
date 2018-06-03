@@ -29,18 +29,18 @@ usage : leakImporter.py <leakName> <leak_file>
 
 A correct database to use along with this tool must have the following collections:
 credentials:
-    prefix  (test)
-    domain  (gmail.com)
-    plain   (p4ssw0rd)
-    hash    (e731a7b612ab389fcb7f973c452f33df3eb69c99)
-    leak    (3)
+    p  (test)
+    d  (gmail.com)
+    P   (p4ssw0rd)
+    h    (e731a7b612ab389fcb7f973c452f33df3eb69c99)
+    l    (3)
 lekas
     name    (tumblr)
     imported(60 550 000)
     filename(tumblr_leak.txt)
     id      (3)
 
-Indexes should be created : db.credentials.createIndex({"domain":"hashed"}), db.credentials.createIndex({"leak":"hashed"})
+Indexes should be created : db.credentials.createIndex({"d":"hashed"}), db.credentials.createIndex({"l":"hashed"})
 '''
 # terminal colors
 ENDC = '\033[0m'
@@ -92,7 +92,7 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
             nb_parsed[n] = nb
             nb_err[n] = errs
     fd2.close()
-    cmd = ["mongoimport","-d",mongo_database,"-c","credentials","--type","csv","--file",filename,"--fields","leak,prefix,domain,hash,plain", "--numInsertionWorkers","8"]
+    cmd = ["mongoimport","-d",mongo_database,"-c","credentials","--type","csv","--file",filename,"--fields","l,p,d,h,P", "--numInsertionWorkers","8"]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     proc.wait()
     e.set()
@@ -101,7 +101,7 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
     db = client[mongo_database]
     credentials = db["credentials"]
     leaks = db["leaks"]
-    imported = credentials.find({"leak":leak_id}).count()
+    imported = credentials.find({"l":leak_id}).count()
     leaks.update_one({"id":leak_id},{"$set":{"imported":imported}})
 
 def stats(nb_parsed, total_lines, leak_id, nb_err, e):
