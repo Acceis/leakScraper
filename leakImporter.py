@@ -74,13 +74,16 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
             if line:
                 try:
                     s = line.strip().replace('"', '""').split(":")
-                    em = s[0].split("@")
-                    prefix = em[0]
-                    domain = em[1]
-                    plain = "".join(s[2:])
-                    hashed = s[1]
-                    fd2.write('"' + str(leak_id) + '"' + delimiter + '"' + prefix + '"' + delimiter + '"' + domain + '"' + delimiter + '"' + hashed + '"' + delimiter + '"' + plain + '"'+"\n")
-                    nb += 1
+                    if len(s) >= 3:
+                        em = s[0].split("@")
+                        prefix = em[0]
+                        domain = em[1]
+                        plain = "".join(s[2:])
+                        hashed = s[1]
+                        fd2.write('"' + str(leak_id) + '"' + delimiter + '"' + prefix + '"' + delimiter + '"' + domain + '"' + delimiter + '"' + hashed + '"' + delimiter + '"' + plain + '"'+"\n")
+                        nb += 1
+                    else:
+                        raise Exception("An attribute is missing")
                 except Exception as ex:
                     print(line, ":", ex)
                     not_imported[1].acquire()
