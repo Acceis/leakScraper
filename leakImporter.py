@@ -34,7 +34,7 @@ credentials:
     P   (p4ssw0rd)
     h    (e731a7b612ab389fcb7f973c452f33df3eb69c99)
     l    (3)
-lekas
+leaks
     name    (tumblr)
     imported(60 550 000)
     filename(tumblr_leak.txt)
@@ -52,8 +52,8 @@ ORANGE = '\033[38;5;208;1m'
 CLEAR = '\033[2K'
 ############################
 # database parameters
-mongo_database = "leakScraper"
-
+mongo_database = "leakScraperTest"
+mail_providers = ["gmail.com","msn.com","yahoo.com","mail.ru","comcast.net","hotmail.com","outlook.com","live.com"]
 
 def count_lines(filename, buffsize=1024 * 1024):
     with open(filename, 'rb') as f:
@@ -61,7 +61,7 @@ def count_lines(filename, buffsize=1024 * 1024):
         return sum(buf.count(b'\n') for buf in bufgen)
 
 
-def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_imported, nb_err, e):
+def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_imported, nb_err, e, mail_providers, nb_mail_providers):
     delimiter = ','
     with open(filepath, "r") as fd:
         line = [fd.readline() for _ in range(nbThreads)][n - 1]
@@ -78,10 +78,13 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
                         em = s[0].split("@")
                         prefix = em[0]
                         domain = em[1]
-                        plain = "".join(s[2:])
-                        hashed = s[1]
-                        fd2.write('"' + str(leak_id) + '"' + delimiter + '"' + prefix + '"' + delimiter + '"' + domain + '"' + delimiter + '"' + hashed + '"' + delimiter + '"' + plain + '"'+"\n")
-                        nb += 1
+                        if domain.lower() not in mail_providers:
+                            plain = "".join(s[2:])
+                            hashed = s[1]
+                            fd2.write('"' + str(leak_id) + '"' + delimiter + '"' + prefix + '"' + delimiter + '"' + domain + '"' + delimiter + '"' + hashed + '"' + delimiter + '"' + plain + '"'+"\n")
+                            nb += 1
+                        else:
+                            nb_mail_providers["nb_mail_providers"] += 1
                     else:
                         raise Exception("An attribute is missing")
                 except Exception as ex:
@@ -107,13 +110,13 @@ def importer(filepath, n, total_lines, nb_parsed, nbThreads, leak_id, not_import
     imported = credentials.find({"l":leak_id}).count()
     leaks.update_one({"id":leak_id},{"$set":{"imported":imported}})
 
-def stats(nb_parsed, total_lines, leak_id, nb_err, e):
+def stats(nb_parsed, total_lines, leak_id, nb_err, e, nb_mail_providers):
     '''
     Thread dedicated to printing statistics when processing things.
     '''
     ok = sum(nb_parsed.values())
     errs = sum(nb_err.values())
-    parsed = errs + ok
+    parsed = errs + ok + nb_mail_providers["nb_mail_providers"]
     client = MongoClient()
     db = client[mongo_database]
     credentials = db["credentials"]
@@ -123,7 +126,7 @@ def stats(nb_parsed, total_lines, leak_id, nb_err, e):
         time.sleep(1)
         ok = sum(nb_parsed.values())
         errs = sum(nb_err.values())
-        parsed = errs + ok
+        parsed = errs + ok + nb_mail_providers["nb_mail_providers"]
         t1 = time.time()
         remaining = total_lines - (parsed)
         speed = int(parsed / (t1 - t0))
@@ -135,8 +138,9 @@ def stats(nb_parsed, total_lines, leak_id, nb_err, e):
         ratio_total = round((parsed) / total_lines * 100, 2)
         ratio_errs = round(errs / parsed * 100, 2)
         ratio_ok = round(ok / parsed * 100, 2)
-        output = CLEAR + "\t" + BLUE + "%s/%s - %s%% - %s/s" + ENDC + ", " + GREEN + "ok : %s - %s%%" + ENDC + ", " + RED + "errors : %s - %s%%" + ENDC + " - %s"
-        print(output % ("{:,}".format(parsed), "{:,}".format(total_lines), ratio_total, speed, "{:,}".format(ok), ratio_ok, "{:,}".format(errs), ratio_errs, eta), end="\r")
+        ratio_individuals = round(nb_mail_providers["nb_mail_providers"] / parsed * 100, 2)
+        output = CLEAR + "\t" + BLUE + "%s/%s - %s%% - %s/s" + ENDC + ", " + GREEN + "ok : %s - %s%%" + ENDC + ", " + YELLOW + "private individuals : %s - %s%%" + ENDC + ", " + RED + "errors : %s - %s%%" + ENDC + " - %s"
+        print(output % ("{:,}".format(parsed), "{:,}".format(total_lines), ratio_total, speed, "{:,}".format(ok), ratio_ok, "{:,}".format(nb_mail_providers["nb_mail_providers"]), ratio_individuals, "{:,}".format(errs), ratio_errs, eta), end="\r")
     print()
     i = 0
     while not e.is_set():
@@ -193,14 +197,16 @@ def main():
                 leak_id = leaks.find_one({"name":leakName})["id"]
             nb_parsed = {}
             nb_err = {}
+            nb_mail_providers = {}
             e = threading.Event()
-            threads = [threading.Thread(target=importer, args=(filename, x, total_lines, nb_parsed, nbThreads, leak_id, not_imported, nb_err, e)) for x in range(1, nbThreads + 1)]
-            statsT = threading.Thread(target=stats, args=(nb_parsed, total_lines, leak_id, nb_err, e))
+            threads = [threading.Thread(target=importer, args=(filename, x, total_lines, nb_parsed, nbThreads, leak_id, not_imported, nb_err, e, mail_providers, nb_mail_providers)) for x in range(1, nbThreads + 1)]
+            statsT = threading.Thread(target=stats, args=(nb_parsed, total_lines, leak_id, nb_err, e, nb_mail_providers))
             print("Processing started ...")
             t0 = time.time()
             for t in threads:
                 nb_parsed[t._args[1]] = 0
                 nb_err[t._args[1]] = 0
+                nb_mail_providers["nb_mail_providers"] = 0
                 t.start()
             statsT.start()
             for t in threads:
