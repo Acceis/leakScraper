@@ -1,10 +1,9 @@
 from pymongo import MongoClient
 from bottle import *
-import magic
 import math
-import os
 
 mongo_database = "leakScraper"
+
 
 @route('/', method='GET')
 @view('views/index')
@@ -35,7 +34,7 @@ def index():
         except ValueError:
             numPage = 1
         start = max(0, (page - 1) * step)
-        end = start + step
+        # end = start + step
         creds = [document for document in credentials.find({"d": query}).skip(start).limit(step)]
         nbRes = credentials.find({"d": query}).skip(((int(numPage) - 1) * max_pages * step)).limit(max_pages * step).count(with_limit_and_skip=True)
         nbPages = int(math.ceil(nbRes / step))
@@ -99,7 +98,10 @@ def export():
         elif what == "cracked":
             r = credentials.find({"d": query, "P": {"$ne": ""}})
 
-        res = "\n".join([x["p"] + "@" + x["d"] + ":" + x["h"] + ":" + x["P"] for x in r])
+        if len(r) > 0:
+            res = "\n".join([x["p"] + "@" + x["d"] + ":" + x["h"] + ":" + x["P"] for x in r])
+        else:
+            res = ""
 
     else:
         redirect("/")
