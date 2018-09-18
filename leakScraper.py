@@ -99,7 +99,7 @@ def export():
             r = credentials.find({"d": query, "P": {"$ne": ""}})
 
         if len(r) > 0:
-            res = "\n".join([x["p"] + "@" + x["d"] + ":" + x["h"] + ":" + x["P"] for x in r])
+            res = "\n".join([str(x["p"]) + "@" + str(x["d"]) + ":" + str(x["h"]) + ":" + str(x["P"]) for x in r])
         else:
             res = ""
 
