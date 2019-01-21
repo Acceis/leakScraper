@@ -10,7 +10,7 @@ LeakScraper is an efficient set of tools to process and visualize huge text file
 	```shell
 	git clone -b mongodb https://github.com/Acceis/leakScraper
 	cd leakScraper
-	sudo ./leakScraper/install.sh
+	sudo ./install.sh
 	```
 	It will install a few pip packages and debian packages (python-magic, python3-pymongo and bottle).
 
