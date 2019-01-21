@@ -9,11 +9,12 @@ LeakScraper is an efficient set of tools to process and visualize huge text file
 - Then :
 	```shell
 	git clone -b mysql https://github.com/Acceis/leakScraper
-	vi leakScraper/settings.py
+	cd leakScraper
+	vi settings.py
 	```
 	Edit the settings to reflect your mysql login/password.
 	```shell
-	sudo ./leakScraper/install.sh
+	sudo ./install.sh
 	```
 	It will install a few pip packages and debian packages (python-magic, python3-mysqldb and bottle).
 
